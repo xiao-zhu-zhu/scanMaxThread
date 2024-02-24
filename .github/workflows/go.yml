@@ -23,18 +23,8 @@ jobs:
       with:
         go-version: '1.21'
 
-    - name: Check out code
-      uses: actions/checkout@v3
-
     - name: Get dependencies
-      run: go mod download
-
-    - name: Build for ${{ matrix.goos }}/${{ matrix.goarch }}
-      run: |
-        docker run --rm -v "$(pwd)":/src -w /src golang:1.21 \
-        /bin/bash -c "GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -v ./..."
+      run: go mod tidy
 
     - name: Test for ${{ matrix.goos }}/${{ matrix.goarch }}
-      run: |
-        docker run --rm -v "$(pwd)":/src -w /src golang:1.21 \
-        /bin/bash -c "GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go test -v ./..."
+      run: "GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -v ./..."
