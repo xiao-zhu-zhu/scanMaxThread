@@ -1,0 +1,40 @@
+name: Go Multi-OS Multi-Arch Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        goos: [ linux, darwin, windows ]
+        goarch: [ amd64, 386, arm64 ]
+        exclude:
+          - goarch: arm64
+            goos: windows
+
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Get dependencies
+      run: go mod download
+
+    - name: Build for ${{ matrix.goos }}/${{ matrix.goarch }}
+      run: |
+        docker run --rm -v "$(pwd)":/src -w /src golang:1.21 \
+        /bin/bash -c "GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -v ./..."
+
+    - name: Test for ${{ matrix.goos }}/${{ matrix.goarch }}
+      run: |
+        docker run --rm -v "$(pwd)":/src -w /src golang:1.21 \
+        /bin/bash -c "GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go test -v ./..."
