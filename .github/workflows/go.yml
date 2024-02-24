@@ -11,19 +11,45 @@ jobs:
     strategy:
       matrix:
         goos: [ linux, darwin, windows ]
-        goarch: [ amd64, 386, arm64 ]
+        goarch: [ amd64, 386 ]
         exclude:
           - goarch: arm64
             goos: windows
 
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
+      - uses: actions/checkout@v3
 
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
 
-    - name: Test for ${{ matrix.goos }}/${{ matrix.goarch }}
-      run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -v ./...
+      - name: Build for ${{ matrix.goos }}/${{ matrix.goarch }}
+        run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -v -o mybinary .
+
+      - name: Test for ${{ matrix.goos }}/${{ matrix.goarch }}
+        run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go test -v ./...
+
+      - name: Create Release
+        id: create_release
+        if: github.ref == 'refs/heads/master'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.sha }}
+          release_name: Release ${{ github.sha }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        if: github.ref == 'refs/heads/master'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./mybinary
+          asset_name: mybinary-${{ matrix.goos }}-${{ matrix.goarch }}
+          asset_content_type: application/octet-stream
